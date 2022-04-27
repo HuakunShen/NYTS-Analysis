@@ -6,5 +6,4 @@ I haven't decided which dataset to use, but there are plenty of choices.
 
 https://www.census.gov/data/tables/time-series/demo/income-poverty/historical-income-families.html (Links to an eternal site.) seems to be a good choice containing historical data for many scenarios (work experience, race).
 
- x
 

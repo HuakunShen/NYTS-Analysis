@@ -1,102 +1,345 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "US Youth Smoking Analysis"
+subtitle: "Which group of youth should be the target of smoking prevention?"
 author: 
-  - First author
-  - Another author
-thanks: "Code and data are available at: LINK."
+  - Huakun Shen
+thanks: "Code and data are available at: https://github.com/HuakunShen/NYTS-Analysis"
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: ""
 output:
   bookdown::pdf_document2
 toc: FALSE
 bibliography: references.bib
+header-includes:
+  - \usepackage{subfig}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 library(tidyverse)
-library(palmerpenguins)
+library(dplyr)
+library(ggplot2)
+library(kableExtra)
+library(here)
+library(gridExtra)
+# source(here::here("scripts/preprocess.R"))
+df2015 <- read.csv(here::here("inputs/data/df2015.csv"))
+df2016 <- read.csv(here::here("inputs/data/df2016.csv"))
+df2017 <- read.csv(here::here("inputs/data/df2017.csv"))
+df2018 <- read.csv(here::here("inputs/data/df2018.csv"))
+df2019 <- read.csv(here::here("inputs/data/df2019.csv"))
+df2020 <- read.csv(here::here("inputs/data/df2020.csv"))
 ```
 
 # Introduction
 
-You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance, Section \@ref(first-discussion-point). 
+The use of tobacco, cigarette and other products related to smoking is known to be addictive 
+and have a negative effect on humans' health. As many habits are formed during the youth, it may be more effective to intervene during this period.
+Many factors can affect humans' habits. To effectively influence the youth, we should know which group of people we are targeting (are more likely to smoke). For example, what's the relationship between race, age, sex and smoking.
+I am also interested in the trend of the percentage of smoking population, so that we can have an idea of whether the smoking prevention means are effective.
 
-
+After doing the analysis I found that high school males students whose race is Hispanic, white or black are more likely to smoke. 
+Curiosity is also a big factor, lowing students' curiosity could also potentially prevent smoking. 
+However, there is a paradox about curiosity. 
+Teaching students about the risks of smoking could raise their curiosity, not teaching the risk is obviously not improper.
 
 # Data
 
-Our data is of penguins (Figure \@ref(fig:bills)).
+This analysis is done using R [@citeR], dplyr[@dplyr], tidyverse[@tidyverse], here[@here]. Graphs and tables are generated using and ggplot2[@ggplot2], kableExtra[@kableExtra], and gridExtra[@gridExtra].
 
-```{r bills, fig.cap="Bills of penguins", echo = FALSE}
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = FALSE) +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
+## Data Source
+
+The data used in this report was retrieved from NYTS[@NYTS] from CDC. 
+The dataset was designed to provide national data on indicators key to the design, implementation and evaluation of comprehensive tobacco prevention and control programs. The goal of the dataset is to reduce tobacco use among youth. Historical data is available from 1999 to 2021 (some years are skipped).
+In this report, I used the data of recent years (2015-2020) to see the trend of tobacco use in the youth in the US.
+
+The data collected in different years are different. There are hundreds of columns for each year. 
+So I pick some of the common columns that are representative, such as race, age, school type, smoked, curious.
+**curious** stands for "have been curious in smoking a cigarette".
+
+Since the data raw dataset's columns are not labelled in English, I pre-processed the data to make it easier to understand.
+
+The `smoked` column is a combination of multiple survey questions (using **or** operator), the description is as follows.
+
+| Col | Description |
+| --- | --- |
+| ccigt_r | Smoked cigarettes on 1 or more days in the past 30 days |
+| ccigar_r | Smoked cigars, cigarillos, or little cigars on 1 or more days in the past 30 days |
+| cslt_r | Used chewing tobacco, snuff, or dip on 1 or more days in the past 30 days |
+| cpipe_r | Smoked tobacco out of a pipe (not a hookah or waterpipe) on 1 or more days in the past 30 days |
+| cbidis_r | Smoked bidis on 1 or more days in the past 30 days |
+| chookah_r | Smoked tobacco out of a hookah or waterpipe on 1 or more days in the past 30 days |
+| csnus_r | Used snus, such as Camel or Marlboro Snus, on 1 or more days in the past 30 days |
+| cdissolv_r | Used dissolvable tobacco, such as Ariva, Camel orbs, Camel sticks, Camel strips, or Stonewall, on 1 or more |
+| celcigt_r | Used electronic cigarettes, such as Ruyan or NJOY, on 1 or more days in the past 30 days |
+
+Basically, all kinds of tobacco use in the past 30 days are considered as **smoked**.
+
+[TODO: How is data collected]
+
+Figure \@ref(fig:dataset-preview) shows a preview of the dataset by displaying the distribution of smoking population (not percentage) by various properties.
+
+```{r, dataset-preview, fig.cap="Smoking Population Distribution", echo=FALSE}
+# Plot some frequency plots for different attributes
+smoked2015 <- df2015 %>% filter(smoked==1) %>% filter(!is.na(Sex))
+sex_hist <- ggplot(smoked2015, aes(Sex)) + geom_bar(fill = "#0073C2FF") + ggtitle("Population Distribution By Sex (2015)") + theme(plot.title = element_text(size=10))
+smoked2015 <- df2015 %>% filter(smoked==1) %>% filter(!is.na(Age))
+smoked2015$RealAge = smoked2015$Age + 9
+age_hist <- ggplot(smoked2015, aes(RealAge)) + geom_bar(fill = "#0073C2FF") + ggtitle("Population Distribution By Age (2015)") + xlab("Age") + theme(plot.title = element_text(size=10))
+smoked2015 <- df2015 %>% filter(smoked==1) %>% filter(!is.na(race))
+race_hist <- ggplot(smoked2015, aes(race)) + geom_bar(fill = "#0073C2FF") + ggtitle("Population Distribution By Race (2015)") + xlab("Race") + theme(plot.title = element_text(size=10))
+smoked2015 <- df2015 %>% filter(smoked==1) %>% filter(!is.na(schooltype))
+schooltype_hist <- ggplot(smoked2015, aes(schooltype)) + geom_bar(fill = "#0073C2FF") + ggtitle("Population Distribution By School Type (2015)") + xlab("School Type") + theme(plot.title = element_text(size=8))
+smoked2015 <- df2015 %>% filter(!is.na(smoked))
+smoked_hist <- ggplot(smoked2015, aes(smoked)) + geom_bar(fill = "#0073C2FF") + ggtitle("Population Distribution By Smoked (2015)") + xlab("Smoked") + theme(plot.title = element_text(size=10))
+grid.arrange(sex_hist, age_hist, race_hist, schooltype_hist, smoked_hist, nrow = 3)
 ```
-
-Talk more about it.
-
-Also bills and their average (Figure \@ref(fig:billssssss)). (Notice how you can change the height and width so they don't take the whole page?)
-
-```{r billssssss, fig.cap="More bills of penguins", echo = FALSE, fig.width=8, fig.height=4}
-
-# This needs to be about the random data tha tI sasmpled?
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = FALSE) +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
-```
-
-Talk way more about it. 
-
 
 
 # Model
 
-\begin{equation}
-Pr(\theta | y) = \frac{Pr(y | \theta) Pr(\theta)}{Pr(y)}  (\#eq:bayes)
-\end{equation}
+```{r model-definition, echo=FALSE}
+# define the model
+model2015 <- glm(smoked ~ Age + Sex + race + schooltype + curious, data=df2015 %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+model2016 <- glm(smoked ~ Age + Sex + race + schooltype + curious, data=df2016 %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+model2017 <- glm(smoked ~ Age + Sex + race + schooltype + curious, data=df2017 %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+model2018 <- glm(smoked ~ Age + Sex + race + schooltype + curious, data=df2018 %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+model2019 <- glm(smoked ~ Age + Sex + race + schooltype + curious, data=df2019 %>% filter(Sex != "N") %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+model2020 <- glm(smoked ~ Age + Sex + race + schooltype, data=df2020 %>% filter(race!="AI/AN") %>% filter(race!="NHOPI"), family=binomial(link = "logit"))
+```
 
-Equation \@ref(eq:bayes) seems useful, eh?
+$$Y\sim Bernoulli(\pi)$$
+$$\log \frac{\pi}{1-\pi}=X\beta$$
+The response variable $Y$ is **smoked** boolean variable. 
 
-Here's a dumb example of how to use some references: In paper we run our analysis in `R` [@citeR]. We also use the `tidyverse` which was written by @thereferencecanbewhatever If we were interested in baseball data then @citeLahman could be useful. 
+The predictor variables include
+- Age
+- Sex
+- Race
+- School Type
 
-We can use maths by including latex between dollar signs, for instance $\theta$.
+The type of model used is GLM (Generalized Linear Model), logistic regression.
+
+Logistic regression is used because the response variable **smoked** has a binary value.
 
 
 # Results
 
+## Model Summary
+
+In the following model summaries, the intercept/baseline is the same.
+The baseline group is Female, Age=9, Asian, high school students who have never been curious about smoking a cigarette. 
+
+Since the sample size of AI/AN and NHOPI are too low, these 2 races are removed from the models (so that they don't serve as the baseline group).
+
+### Model 2015
+
+```{r, summary-2015, echo=FALSE}
+# display model summary coefficients for 2015
+knitr::kable(summary(model2015)$coef, digits = 4)
+```
+
+All variables are significant except for **schooltype**.
+
+### Model 2016
+
+```{r, summary-2016, echo=FALSE}
+# display model summary coefficients for 2016
+knitr::kable(summary(model2016)$coef, digits = 4)
+```
+
+All variables are significant except for **schooltype**.
+
+### Model 2017
+
+```{r, summary-2017, echo=FALSE}
+# display model summary coefficients for 2017
+knitr::kable(summary(model2017)$coef, digits = 4)
+```
+
+All variables are significant.
+
+### Model 2018
+
+```{r, summary-2018, echo=FALSE}
+# display model summary coefficients for 2018
+knitr::kable(summary(model2018)$coef, digits = 4)
+```
+
+All variables are significant.
+
+### Model 2019
+
+```{r, summary-2019, echo=FALSE}
+# display model summary coefficients for 2019
+knitr::kable(summary(model2019)$coef, digits = 4)
+```
+
+All variables are significant except for **schooltype**.
+
+### Model 2020
+
+```{r, summary-2020, echo=FALSE}
+# display model summary coefficients for 2020
+knitr::kable(summary(model2015)$coef, digits = 4)
+```
+
+All variables are significant.
+
+## Smoking Population Trend
+
+```{r trend-plot, echo=FALSE, fig.height=2, fig.cap="Trend of Sample Size and Smoker Population"}
+# plot a trend line plot for smoking population and sample size from 2015 to 2020
+years <- c(2015, 2016, 2017, 2018, 2019, 2020)
+
+# calculate smoking percentage
+percentages <- c(
+  (df2015 %>% filter(smoked == 1) %>% count / df2015 %>% filter(!is.na(smoked)) %>% count)$n,
+  (df2016 %>% filter(smoked == 1) %>% count / df2016 %>% filter(!is.na(smoked)) %>% count)$n,
+  (df2017 %>% filter(smoked == 1) %>% count / df2017 %>% filter(!is.na(smoked)) %>% count)$n,
+  (df2018 %>% filter(smoked == 1) %>% count / df2018 %>% filter(!is.na(smoked)) %>% count)$n,
+  (df2019 %>% filter(smoked == 1) %>% count / df2019 %>% filter(!is.na(smoked)) %>% count)$n,
+  (df2020 %>% filter(smoked == 1) %>% count / df2020 %>% filter(!is.na(smoked)) %>% count)$n
+)
+trend_df <- data.frame(year=years, percentage=percentages)
+
+
+smoker_percentage_trend <- trend_df %>% ggplot(aes(x=year, y=percentages)) +
+  geom_line(color="red")+
+  geom_point() + ggtitle("Percentage Of Smoker Trend")
+
+# calculate sample size
+counts <- c(
+  (df2015 %>% count)$n,
+  (df2016 %>% count)$n,
+  (df2017 %>% count)$n,
+  (df2018 %>% count)$n,
+  (df2019 %>% count)$n,
+  (df2020 %>% count)$n
+)
+trend_df <- data.frame(year=years, count=counts)
+sample_size_trend <- trend_df %>% ggplot(aes(x=year, y=count)) +
+  geom_line(color="red")+
+  geom_point() + ggtitle("Sample Size Trend")
+grid.arrange(sample_size_trend, smoker_percentage_trend, nrow = 1)
+```
+
+From figure \ref(fig:trend-plot), we can see a large decrease in smoker percentage from 2015 to 2016, then a large increase in 2018 and 2019.
+There is a huge decrease in smoking percentage in 2020 with a big decrease in sample size in 2020 as well.
+
+## Density
+
+```{r density-plot, fig.cap="Smoker Density By Group", fig.height=8, echo=FALSE}
+# plot density and frequency plots grouping by different properties and "smoked"
+# sex density plots
+sex_density <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(Sex)) %>% ggplot(aes(Sex)) + geom_bar(aes(fill=smoked)) + ggtitle("Sex Frequency")
+
+# race plots
+race_df <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(race))
+race_count_df <- merge(race_df %>% group_by(race, smoked) %>% count %>% rename(count = n), race_df %>% group_by(race) %>% count %>% rename(total = n), by="race")
+race_count_df$percentage <- race_count_df$count / race_count_df$total
+race_density <- ggplot(race_count_df, aes(fill=smoked, y=percentage, x=race)) + 
+    geom_bar(position="fill", stat="identity") + theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + xlab("Race") + ggtitle("Race Density")
+
+race_freq <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(race)) %>% ggplot(aes(race)) + geom_bar(aes(fill=smoked)) + theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + xlab("Race") + ggtitle("Race Frequency")
+
+
+# remove AI/AN and NHOPI from race because their sample size is too small and could influence the plot scale
+race2_df <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(race)) %>% filter(race!="AI/AN") %>% filter(race!="NHOPI")
+race_count_df <- merge(race2_df %>% group_by(race, smoked) %>% count %>% rename(count = n), race2_df %>% group_by(race) %>% count %>% rename(total = n), by="race")
+race_count_df$percentage <- race_count_df$count / race_count_df$total
+
+race_density_2 <- ggplot(race_count_df, aes(fill=smoked, y=percentage, x=race)) + 
+    geom_bar(position="fill", stat="identity") + theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + xlab("Race") + ggtitle("Race Density")
+
+race_freq_2 <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(race)) %>% ggplot(aes(race)) + geom_bar(aes(fill=smoked)) + theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + xlab("Race") + ggtitle("Race Frequency")
+
+# Age plots
+df2015$RealAge <- df2015$Age + 9
+RealAge_df <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(RealAge))
+RealAge_count_df <- merge(RealAge_df %>% group_by(RealAge, smoked) %>% count %>% rename(count = n), RealAge_df %>% group_by(RealAge) %>% count %>% rename(total = n), by="RealAge")
+RealAge_count_df$percentage <- RealAge_count_df$count / RealAge_count_df$total
+age_density <- ggplot(RealAge_count_df, aes(fill=smoked, y=percentage, x=RealAge)) + 
+    geom_bar(position="fill", stat="identity") + theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + xlab("Age") + ggtitle("Age Density")
+
+age_freq <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(RealAge)) %>% ggplot(aes(RealAge)) + geom_bar(aes(fill=smoked)) + xlab("Age") + ggtitle("Age Frequency") + ggtitle("Age Frequency")
+
+# school type plots
+school_type_density <- df2015 %>% filter(!is.na(smoked)) %>% filter(!is.na(schooltype)) %>% ggplot(aes(schooltype)) + geom_bar(aes(fill=smoked)) + xlab("School Type") + ggtitle("School Type Frequency")
+grid.arrange(race_density, race_freq, race_density_2, race_freq_2, age_density, age_freq, school_type_density, sex_density, nrow = 4)
+```
+
+```{r smoker-percentage-by-race, echo=FALSE}
+# make a table showing the percentage of smokers for each race
+race_count_df$Percentage = round(race_count_df$percentage * 100, 2)
+df <- race_count_df %>% rename(Race=race) %>% filter(smoked==TRUE)
+knitr::kable(df[c("Race", "Percentage")], caption="Smoker Percentage By Race")
+```
+
+
+Figure \@ref(fig:density-plot) plots the density of smoked population by different groups.
+The general trend is
+1. Higher percentage of males smokes than females
+2. As age increases, more adolescents tend to smoke (higher percentage of high school students smoke than middle school)
+  1. When age is 10-11, the smoking ratio is super high, but this is probably because the sample size is too small. See Age Frequency plot.
+3. Higher percentage of AI/AN and NHOPI smoke than other races (but their sample size is very small)
+  1. See table \@ref(tab:smoker-percentage-by-race). Hispanic has the highest percentage of smokers, then White, Black and Asian
+  
+
+
 # Discussion
 
-## First discussion point
+## Trend
 
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
+From figure \@ref(fig:trend-plot), we can see an overall increasing trend of smoking youth population.
+The drop of sample size in 2020 could be due to Covid 19, and this could have an impact on the accuracy of collected results.
+However, even with the large drop in sample size in 2020, the sample size is still pretty large.
+So, another hypothesis is that smokers has been reduced due to Covid 19 because more people tend to stay home.
+I believe the overall trend is still an increasing trend with the data of recent years. It may be more accurate if we can look at the historical data of the years before 2015.
 
-## Second discussion point
+## Race
 
-## Third discussion point
+Figure \@ref(fig:density-plot) shows that, among the 4 races with the largest populations (Asian, Black, Hispanic and White), Asian has the lowest percentage of smokers.
+The other 3 groups have relative high smoking percentage.
 
-## Weaknesses and next steps
+This hypothesis is also supported by GLM. From [Model Summary] results, we can see that all variables are significant based on the p-values. 
+Asian is the baseline group, raceBlack, raceWhite and raceHispanic all have positive estimate value.
 
-Weaknesses and next steps should also be included.
+## Other Variables
+
+In [Model Summary] section we can see that **SexM** variable is significant and positive for all years.
+Meaning that more male tends to smoke than female does.
+
+Age is positive, meaning that as age increases, youths are more likely start to smoke.
+
+**schooltypeMiddle** significant for 2 of the 5 years. It is negative meaning that high school students are more likely to smoke than middle school students are,
+which is expected as **schooltype** is directly related to age.
+
+**curious** is also always significant and positive, meaning that students who have been curious in smoking are more likely to smoke later.
+
+## Conclusion
+
+With the evidence from statistical models and plots, we can conclude the target for smoking prevention.
+The main target are high school male students whose race is hispanic, white or black.
+
+This doesn't mean middle school students should not be focused on. If middle school students start to smoke, 
+it's more likely for them to smoke later or even influence their classmates. This is evidenced by the **curious** variable.
+As more classmates/friends are smoking, a student should be curious about smoking and are more likely to smoke eventually.
+
+## Limitation
+
+The dataset has a serious limitation when we need to perform an analysis across multiple years.
+The number of survey questions is increasing every year, more columns are added to the dataset, which is fine.
+What's troublesome is that many column names are not consistent across years, some questions are even missing in later years.
+Which could cause serious mistake if not realized, and takes lots of time to find the column names and match them. 
 
 \newpage
 
 \appendix
 
 # Appendix {-}
-
-
-# Additional details
 
 
 \newpage
