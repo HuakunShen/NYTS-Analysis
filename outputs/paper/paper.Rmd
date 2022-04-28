@@ -5,10 +5,14 @@ author:
   - Huakun Shen
 thanks: "Code and data are available at: https://github.com/HuakunShen/NYTS-Analysis"
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: ""
+abstract: "An statistical analysis has been conducted to analyze national youth tobacco usage using NYTS survey prodiced by CDC. The use of tobacco is known to be addictive and harmful to human health, thus preventing tobacco consumption during the youth is crucial, as youth is likely the time people first start to consume tobacco. It's important to know who are more likely to smoke in order to target this group of people and apply prevention means. It is found that Males high school students whose race is Hispanic, White and Black (in decreasing order) are more likely to smoke. Curiosity is also an important factor. Keeping students in a healthy environment is important."
 output:
   bookdown::pdf_document2
 toc: FALSE
+keywords: 
+  - smoking
+  - youth
+  - US
 bibliography: references.bib
 header-includes:
   - \usepackage{subfig}
@@ -44,6 +48,7 @@ After doing the analysis I found that high school males students whose race is H
 Curiosity is also a big factor, lowing students' curiosity could also potentially prevent smoking. 
 However, there is a paradox about curiosity. 
 Teaching students about the risks of smoking could raise their curiosity, not teaching the risk is obviously not improper.
+So, providing a healthy environment for students and teaching them about the risk of tobacco consumption are important.
 
 # Data
 
@@ -56,12 +61,20 @@ The dataset was designed to provide national data on indicators key to the desig
 In this report, I used the data of recent years (2015-2020) to see the trend of tobacco use in the youth in the US.
 
 The data collected in different years are different. There are hundreds of columns for each year. 
-So I pick some of the common columns that are representative, such as race, age, school type, smoked, curious.
-**curious** stands for "have been curious in smoking a cigarette".
+So I pick some of the common columns that are representative, they are
+
+- race: Asian, Black, White, Hispanic, AI/AN or NHOPI
+- age: age with a offset of -9, i.e. 1 if a person is 9 years old, 2 if 10 years old and so on
+- schooltype: middle school or high school
+- smoked: whether have been smoked in the past 30 days
+- curious: have been curious about smoking a cigarette
+  - Definitely yes and probably yes are both considered **TRUE**
+  - Definitely no and probably no are both considered **FALSE**
 
 Since the data raw dataset's columns are not labelled in English, I pre-processed the data to make it easier to understand.
 
-The `smoked` column is a combination of multiple survey questions (using **or** operator), the description is as follows.
+The **smoked** column is a combination of multiple survey questions (using **or** operator), the description is as follows.
+Which means, if either of the following columns are **TRUE**, **smoked** will be TRUE.
 
 | Col | Description |
 | --- | --- |
@@ -77,9 +90,9 @@ The `smoked` column is a combination of multiple survey questions (using **or** 
 
 Basically, all kinds of tobacco use in the past 30 days are considered as **smoked**.
 
-[TODO: How is data collected]
+This dataset/survey is chosen because it's published by CDC (Centers for Disease Control and Prevention), which should be the most official and authoritative institution for this type of data in the United States. CDC has two other surveys, they are "Alaska Native Adult Tobacco Survey Guidance Manual" and "American Indian Adult Tobacco Survey" which are for 2 minority groups that can not represent the US. A report from WHO called "WHO Global Tobacco Control Report 2011 - Data" has a 404 not found page. NYTS is the only dataset I found that contains data I need and also historical data for many years.
 
-Figure \@ref(fig:dataset-preview) shows a preview of the dataset by displaying the distribution of smoking population (not percentage) by various properties.
+Figure \@ref(fig:dataset-preview) shows a preview of the dataset (selected properties, 2015) by displaying the distribution of smoking population (not percentage) by various properties. The datasets for other years have exactly the same structure.
 
 ```{r, dataset-preview, fig.cap="Smoking Population Distribution", echo=FALSE}
 # Plot some frequency plots for different attributes
@@ -112,18 +125,23 @@ model2020 <- glm(smoked ~ Age + Sex + race + schooltype, data=df2020 %>% filter(
 
 $$Y\sim Bernoulli(\pi)$$
 $$\log \frac{\pi}{1-\pi}=X\beta$$
-The response variable $Y$ is **smoked** boolean variable. 
+The response variable $Y$ is **smoked** boolean variable.
 
 The predictor variables include
+
 - Age
 - Sex
 - Race
 - School Type
+- curious
 
 The type of model used is GLM (Generalized Linear Model), logistic regression.
 
 Logistic regression is used because the response variable **smoked** has a binary value.
 
+See [Model Summary] section for description about the intercept/baseline group because this is determined by R [@citeR].
+
+A model card is included in the appendix, information are obtained from [@penn-GLM].
 
 # Results
 
@@ -133,6 +151,10 @@ In the following model summaries, the intercept/baseline is the same.
 The baseline group is Female, Age=9, Asian, high school students who have never been curious about smoking a cigarette. 
 
 Since the sample size of AI/AN and NHOPI are too low, these 2 races are removed from the models (so that they don't serve as the baseline group).
+
+Most selected variables are significant except for **schooltype**, which has been significant in 2 of the 5 years.
+
+Overall, Asians, Females, middle school (low-age) students who had less curiosity in smoking are less likely to smoke.
 
 ### Model 2015
 
@@ -190,7 +212,7 @@ All variables are significant.
 
 ## Smoking Population Trend
 
-```{r trend-plot, echo=FALSE, fig.height=2, fig.cap="Trend of Sample Size and Smoker Population"}
+```{r trend-plot, fig.cap="Trend of Sample Size and Smoker Population", echo=FALSE, fig.height=2}
 # plot a trend line plot for smoking population and sample size from 2015 to 2020
 years <- c(2015, 2016, 2017, 2018, 2019, 2020)
 
@@ -335,11 +357,15 @@ The number of survey questions is increasing every year, more columns are added 
 What's troublesome is that many column names are not consistent across years, some questions are even missing in later years.
 Which could cause serious mistake if not realized, and takes lots of time to find the column names and match them. 
 
-\newpage
 
 \appendix
 
 # Appendix {-}
+
+```{r, model-card, out.width="\\linewidth", include=TRUE, fig.align="center", fig.cap=c("GLM Model Card"), echo=FALSE}
+knitr::include_graphics(here::here("outputs/GLM-model-card.pdf"))
+```
+
 
 
 \newpage
